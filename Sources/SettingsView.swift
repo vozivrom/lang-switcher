@@ -18,12 +18,12 @@ struct SettingsView: View {
             }
 
             List {
-                ForEach(settings.languageIDs, id: \.self) { id in
+                ForEach(settings.layoutIDs, id: \.self) { id in
                     HStack(spacing: 8) {
                         Image(systemName: "line.3.horizontal")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        Text(LayoutCatalog.byID[id]?.name ?? id)
+                        Text(KeyboardLayouts.layout(id: id)?.name ?? id)
                         Spacer()
                         Button {
                             settings.remove(id)
@@ -36,7 +36,7 @@ struct SettingsView: View {
                         .opacity(settings.canRemove ? 1 : 0.3)
                         .help(settings.canRemove
                               ? "Remove from the cycle"
-                              : "Keep at least \(Settings.minimumLanguages) languages")
+                              : "Keep at least \(Settings.minimumLayouts) layouts")
                     }
                 }
                 .onMove { settings.move(from: $0, to: $1) }
@@ -50,7 +50,7 @@ struct SettingsView: View {
                         Button(layout.name) { settings.add(layout.id) }
                     }
                 } label: {
-                    Label("Add language", systemImage: "plus")
+                    Label("Add layout", systemImage: "plus")
                 }
                 .disabled(settings.availableToAdd.isEmpty)
                 .frame(width: 160)

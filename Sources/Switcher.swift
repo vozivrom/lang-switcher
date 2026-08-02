@@ -11,6 +11,7 @@ enum Switcher {
     private static let keyC: CGKeyCode = 8
     private static let keyV: CGKeyCode = 9
     private static let keyLeftArrow: CGKeyCode = 123
+    private static let keyRightArrow: CGKeyCode = 124
 
     private static let source = CGEventSource(stateID: .combinedSessionState)
 
@@ -58,10 +59,10 @@ enum Switcher {
         restore(pasteboard, items: saved)
         lastState = result.state
 
-        // Switch the system keyboard to the target layout's language.
-        let langCode = result.langCode
+        // Switch the system keyboard to the target layout.
+        let layoutID = result.layoutID
         DispatchQueue.main.async {
-            InputSource.select(language: langCode)
+            InputSource.select(id: layoutID)
         }
     }
 
@@ -89,11 +90,43 @@ enum Switcher {
     private static func selectFallbackRange(scope: Scope) {
         switch scope {
         case .word:
+            // ⇧⌥← stops at punctuation, so "d;m" would only give "m". Select
+            // back to whitespace instead — that's the run the user typed.
+            if TextAccess.selectPreviousRun() { return }
+            if extendSelectionToWhitespace() { return }
             postKey(keyLeftArrow, flags: [.maskShift, .maskAlternate])
         case .text:
             postKey(keyA, flags: .maskCommand)
         }
         usleep(60_000)
+    }
+
+    /// Grows the selection one character at a time until it reaches whitespace
+    /// or the start of the field.
+    ///
+    /// Chromium-based apps (VS Code, Slack, Discord) refuse to have their
+    /// selection range set through Accessibility, but they do report the
+    /// selected text — so we walk left with ⇧← and watch what gets selected.
+    ///
+    /// - Returns: false if the app doesn't report selections either, so the
+    ///   caller can fall back to word-wise selection.
+    private static func extendSelectionToWhitespace(limit: Int = 64) -> Bool {
+        var selected = ""
+        for _ in 0..<limit {
+            postKey(keyLeftArrow, flags: .maskShift)
+            usleep(12_000)
+
+            guard let current = TextAccess.selectedText() else { return false }
+            if current == selected { break }        // start of the field
+            if let first = current.first, first.isWhitespace {
+                // Overshot into the previous word; hand the character back.
+                postKey(keyRightArrow, flags: .maskShift)
+                usleep(12_000)
+                break
+            }
+            selected = current
+        }
+        return !selected.isEmpty
     }
 
     /// Presses ⌘C and waits for the pasteboard to actually change, rather than

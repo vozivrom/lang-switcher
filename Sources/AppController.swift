@@ -11,6 +11,9 @@ final class AppController {
 
     func start() {
         LoginItem.enable()
+        // Touch settings at launch so any migration of stored layout ids happens
+        // now rather than the first time the user opens the panel.
+        _ = Settings.shared.cycle
         statusItem.install()
 
         detector.onDoubleShift = { [weak self] in
