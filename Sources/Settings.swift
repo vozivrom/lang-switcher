@@ -20,7 +20,12 @@ final class Settings: ObservableObject {
 
     /// Ordered list of layout ids the double-shift cycles through.
     @Published var layoutIDs: [String] {
-        didSet { defaults.set(layoutIDs, forKey: Key.layouts) }
+        didSet {
+            defaults.set(layoutIDs, forKey: Key.layouts)
+            guard layoutIDs.count != oldValue.count else { return }
+            // The list grows a row per layout; let the panel resize around it.
+            NotificationCenter.default.post(name: .settingsContentResized, object: nil)
+        }
     }
 
     /// Whether a double-shift (with no selection) acts on the last word or all text.

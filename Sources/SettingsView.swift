@@ -5,15 +5,27 @@ struct SettingsView: View {
     @ObservedObject var settings: Settings
     @ObservedObject private var appState = AppState.shared
 
+    /// Rows are pinned to this height so the list can be sized exactly, with no
+    /// leftover strip under the last one.
+    private let rowHeight: CGFloat = 26
+
+    /// One row per layout, so the list grows and shrinks with the cycle rather
+    /// than leaving empty space or scrolling. Capped so a long list can't push
+    /// the panel off screen.
+    private var listHeight: CGFloat {
+        let rows = max(settings.layoutIDs.count, 1)
+        return min(CGFloat(rows) * rowHeight, 300)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("LangSwitcher")
                 .font(.headline)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Double-shift cycles through:")
+                Text("Chosen layouts")
                     .font(.subheadline)
-                Text("Each press moves to the next layout below (wraps around). Drag to reorder.")
+                Text("Double-shift cycles through these in order. Drag to reorder.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -39,11 +51,24 @@ struct SettingsView: View {
                               ? "Remove from the cycle"
                               : "Keep at least \(Settings.minimumLayouts) layouts")
                     }
+                    .frame(height: rowHeight)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 8))
+                    .listRowSeparator(.hidden)
                 }
                 .onMove { settings.move(from: $0, to: $1) }
             }
-            .frame(height: 130)
-            .listStyle(.bordered)
+            // The bordered style draws square corners, so use a plain list and
+            // supply our own rounded border to match the panel.
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .environment(\.defaultMinListRowHeight, rowHeight)
+            .frame(height: listHeight)
+            .background(Color.primary.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.15), lineWidth: 1)
+            )
 
             HStack {
                 Menu {
@@ -51,10 +76,12 @@ struct SettingsView: View {
                         Button(layout.name) { settings.add(layout.id) }
                     }
                 } label: {
-                    Label("Add layout", systemImage: "plus")
+                    Text("Add layout")
                 }
+                // Sized to its content: a fixed width left the bezel wider than
+                // the label and pushed it out of line with everything else.
+                .fixedSize()
                 .disabled(settings.availableToAdd.isEmpty)
-                .frame(width: 160)
                 Spacer()
             }
 

@@ -2,6 +2,12 @@ import Cocoa
 import SwiftUI
 import QuartzCore
 
+extension Notification.Name {
+    /// Posted when the settings content changes height, so the panel window can
+    /// follow — its frame is fixed at open time and would otherwise clip.
+    static let settingsContentResized = Notification.Name("LangSwitcherSettingsContentResized")
+}
+
 /// A borderless panel that can become key (so SwiftUI controls work) and draws
 /// as a plain rounded rectangle — no popover arrow.
 private final class MenuPanel: NSPanel {
@@ -13,6 +19,8 @@ final class StatusItemController: NSObject {
     private var statusItem: NSStatusItem?
     private var panel: MenuPanel?
     private var clickMonitor: Any?
+    private var resizeObserver: NSObjectProtocol?
+    private var hostingView: NSHostingView<SettingsView>?
     private var lastCloseTime: CFTimeInterval = 0
 
     func install() {
@@ -41,6 +49,7 @@ final class StatusItemController: NSObject {
 
         let hosting = NSHostingView(rootView: SettingsView(settings: Settings.shared))
         let size = hosting.fittingSize
+        hostingView = hosting
 
         // NSVisualEffectView with .behindWindow blending is what actually blurs
         // the desktop behind the panel (a SwiftUI Material can't). The hosting
@@ -87,6 +96,25 @@ final class StatusItemController: NSObject {
         clickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
             self?.closePanel()
         }
+        resizeObserver = NotificationCenter.default.addObserver(
+            forName: .settingsContentResized, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.resizeToFitContent()
+        }
+    }
+
+    /// Grows or shrinks the panel around its content, keeping the top edge
+    /// pinned under the menu bar icon so it doesn't appear to jump.
+    private func resizeToFitContent() {
+        guard let panel = panel, let hosting = hostingView else { return }
+        hosting.layoutSubtreeIfNeeded()
+
+        let size = hosting.fittingSize
+        var frame = panel.frame
+        let top = frame.origin.y + frame.height
+        frame.size = size
+        frame.origin.y = top - size.height
+        panel.setFrame(frame, display: true, animate: false)
     }
 
     @objc private func closePanel() {
@@ -96,8 +124,13 @@ final class StatusItemController: NSObject {
             clickMonitor = nil
         }
         NotificationCenter.default.removeObserver(self, name: NSWindow.didResignKeyNotification, object: panel)
+        if let observer = resizeObserver {
+            NotificationCenter.default.removeObserver(observer)
+            resizeObserver = nil
+        }
         panel.orderOut(nil)
         self.panel = nil
+        hostingView = nil
         lastCloseTime = CACurrentMediaTime()
     }
 }
