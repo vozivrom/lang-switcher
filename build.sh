@@ -4,10 +4,13 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 APP="$ROOT/build/LangSwitcher.app"
 MACOS_DIR="$APP/Contents/MacOS"
+VERSION="$(tr -d '[:space:]' < "$ROOT/VERSION")"
 
 rm -rf "$APP"
 mkdir -p "$MACOS_DIR"
 cp "$ROOT/Info.plist" "$APP/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$APP/Contents/Info.plist"
 
 swiftc -O \
     "$ROOT/Sources/"*.swift \

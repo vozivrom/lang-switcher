@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The version lives in ./VERSION; refuse to publish a tag that disagrees
+      # with it, so the DMG name can never contradict the binary inside.
+      - name: Check tag matches VERSION
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          file="$(tr -d '[:space:]' < VERSION)"
+          if [ "$tag" != "$file" ]; then
+            echo "Tag $tag does not match VERSION $file" >&2
+            exit 1
+          fi
+
+      - name: Build DMG
+        run: ./package.sh
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(tr -d '[:space:]' < VERSION)"
+          dmg="build/LangSwitcher-$version.dmg"
+          sha="$(shasum -a 256 "$dmg" | awk '{print $1}')"
+
+          cat > notes.md <<EOF
+          Requires macOS 13 or later on Apple Silicon.
+
+          **Install**
+
+          1. Open the DMG and drag LangSwitcher to Applications.
+          2. Launch it. macOS will say it cannot verify the developer — the app
+             is signed ad-hoc, not notarized. Click Done, then open
+             System Settings > Privacy & Security and click **Open Anyway**.
+          3. Enable LangSwitcher under Privacy & Security > **Accessibility**.
+
+          **Usage**
+
+          Type a word in the wrong layout and press Shift twice quickly.
+          Press again to cycle to the next layout. Configure the language
+          cycle from the globe icon in the menu bar.
+
+          SHA256: \`$sha\`
+          EOF
+
+          gh release create "v$version" "$dmg" \
+            --title "LangSwitcher $version" \
+            --notes-file notes.md
