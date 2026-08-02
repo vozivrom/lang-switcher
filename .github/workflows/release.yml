@@ -64,20 +64,27 @@ jobs:
           **Install**
 
           1. Open the DMG and drag LangSwitcher to Applications.
-          2. Launch it. macOS will say it cannot verify the developer — the app
-             is signed ad-hoc, not notarized. Click Done, then open
+          2. Launch it. macOS will say it cannot verify the developer, because
+             the app isn't notarized. Click Done, then open
              System Settings > Privacy & Security and click **Open Anyway**.
           3. Enable LangSwitcher under Privacy & Security > **Accessibility**.
 
           **Usage**
 
-          Type a word in the wrong layout and press Shift twice quickly.
-          Press again to cycle to the next layout. Configure the language
-          cycle from the globe icon in the menu bar.
+          Type a word in the wrong layout and double-tap Shift. Press again to
+          cycle to the next layout. Choose your layouts, the trigger key and
+          per-app layout memory from the globe icon in the menu bar.
 
           SHA256: \`$sha\`
           EOF
 
-          gh release create "v$version" "$dmg" \
-            --title "LangSwitcher $version" \
-            --notes-file notes.md
+          # Re-runnable: create the release the first time, refresh the asset
+          # and notes on later runs rather than failing because it exists.
+          if gh release view "v$version" >/dev/null 2>&1; then
+            gh release upload "v$version" "$dmg" --clobber
+            gh release edit "v$version" --title "LangSwitcher $version" --notes-file notes.md
+          else
+            gh release create "v$version" "$dmg" \
+              --title "LangSwitcher $version" \
+              --notes-file notes.md
+          fi
