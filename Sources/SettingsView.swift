@@ -25,7 +25,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Chosen layouts")
                     .font(.subheadline)
-                Text("Double-shift cycles through these in order. Drag to reorder.")
+                Text("Double-tap \(settings.hotkey.symbol) to cycle through these in order. Drag to reorder.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -84,6 +84,13 @@ struct SettingsView: View {
                 .disabled(settings.availableToAdd.isEmpty)
                 Spacer()
             }
+
+            Picker("Hotkey:", selection: $settings.hotkey) {
+                ForEach(HotkeyModifier.allCases) { modifier in
+                    Text("Double-tap \(modifier.symbol) \(modifier.name)").tag(modifier)
+                }
+            }
+            .pickerStyle(.menu)
 
             Picker("Convert:", selection: $settings.scope) {
                 Text("Last word").tag(Scope.word)

@@ -5,9 +5,10 @@ import Cocoa
 /// the login item.
 final class AppController {
 
-    private let detector = DoubleShiftDetector()
+    private let detector = DoubleTapDetector()
     private let statusItem = StatusItemController()
     private var permissionTimer: Timer?
+    private var hotkeyObserver: NSObjectProtocol?
 
     func start() {
         LoginItem.enable()
@@ -15,9 +16,15 @@ final class AppController {
         // now rather than the first time the user opens the panel.
         _ = Settings.shared.cycle
         AppLayoutMemory.shared.setEnabled(Settings.shared.rememberLayoutPerApp)
+        detector.modifier = Settings.shared.hotkey
+        hotkeyObserver = NotificationCenter.default.addObserver(
+            forName: .hotkeyChanged, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.detector.modifier = Settings.shared.hotkey
+        }
         statusItem.install()
 
-        detector.onDoubleShift = { [weak self] in
+        detector.onDoubleTap = { [weak self] in
             guard let self = self else { return }
             // Read settings on the main thread (this callback runs on the main
             // run loop), then hand a snapshot to the background worker.

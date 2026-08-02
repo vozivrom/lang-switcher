@@ -16,6 +16,7 @@ final class Settings: ObservableObject {
         static let legacyLanguages = "cycleLanguages"   // pre-1.2 language codes
         static let scope = "scope"
         static let rememberPerApp = "rememberLayoutPerApp"
+        static let hotkey = "hotkeyModifier"
     }
 
     /// Ordered list of layout ids the double-shift cycles through.
@@ -33,6 +34,14 @@ final class Settings: ObservableObject {
         didSet { defaults.set(scope.rawValue, forKey: Key.scope) }
     }
 
+    /// The modifier double-tapped to convert.
+    @Published var hotkey: HotkeyModifier {
+        didSet {
+            defaults.set(hotkey.rawValue, forKey: Key.hotkey)
+            NotificationCenter.default.post(name: .hotkeyChanged, object: nil)
+        }
+    }
+
     /// Restore each app's last layout when switching to it.
     @Published var rememberLayoutPerApp: Bool {
         didSet {
@@ -44,6 +53,7 @@ final class Settings: ObservableObject {
     private init() {
         scope = Scope(rawValue: defaults.string(forKey: Key.scope) ?? "") ?? .word
         rememberLayoutPerApp = defaults.bool(forKey: Key.rememberPerApp)
+        hotkey = HotkeyModifier(rawValue: defaults.string(forKey: Key.hotkey) ?? "") ?? .shift
 
         if let stored = defaults.array(forKey: Key.layouts) as? [String] {
             layoutIDs = Settings.installed(stored)
