@@ -30,9 +30,23 @@ if [ "$BUNDLE_VERSION" != "$VERSION" ]; then
     exit 1
 fi
 
-# Ad-hoc sign: required to run at all on Apple Silicon, and needs no
-# certificate on the recipient's machine.
-codesign --force --deep --sign - "$APP"
+# Sign with the stable identity when it's available.
+#
+# An ad-hoc signature's designated requirement is the binary's own hash, so
+# macOS treats every build as a different app and the user has to re-grant
+# Accessibility on each update. Signing with a certificate pins the requirement
+# to the certificate instead, so grants survive updates. The certificate is
+# embedded in the signature, so recipients need nothing installed — Gatekeeper
+# still warns once, because it isn't an Apple-issued Developer ID.
+IDENTITY="LangSwitcher Self-Signed"
+if security find-identity -v 2>/dev/null | grep -q "$IDENTITY" \
+   || security find-certificate -c "$IDENTITY" >/dev/null 2>&1; then
+    codesign --force --deep --sign "$IDENTITY" "$APP"
+    echo "Signed with: $IDENTITY"
+else
+    codesign --force --deep --sign - "$APP"
+    echo "Signed: ad-hoc (updates will reset the user's permissions)"
+fi
 
 # Drag-to-install layout.
 ln -s /Applications "$STAGE/Applications"
