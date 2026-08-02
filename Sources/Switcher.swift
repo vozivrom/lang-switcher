@@ -14,6 +14,10 @@ enum Switcher {
 
     private static let source = CGEventSource(stateID: .combinedSessionState)
 
+    /// Stamped on every event we post so the detector can tell our synthetic
+    /// keystrokes (the Shift in ⇧⌥←) from the user's own.
+    static let syntheticTag: Int64 = 0x1A_9C_5E_11
+
     /// Persisted across calls so consecutive double-shifts keep cycling.
     private static var lastState: CycleState?
 
@@ -126,10 +130,12 @@ enum Switcher {
     private static func postKey(_ key: CGKeyCode, flags: CGEventFlags) {
         if let down = CGEvent(keyboardEventSource: source, virtualKey: key, keyDown: true) {
             down.flags = flags
+            down.setIntegerValueField(.eventSourceUserData, value: syntheticTag)
             down.post(tap: .cghidEventTap)
         }
         if let up = CGEvent(keyboardEventSource: source, virtualKey: key, keyDown: false) {
             up.flags = flags
+            up.setIntegerValueField(.eventSourceUserData, value: syntheticTag)
             up.post(tap: .cghidEventTap)
         }
     }

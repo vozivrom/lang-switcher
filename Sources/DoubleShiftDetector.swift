@@ -70,6 +70,9 @@ final class DoubleShiftDetector {
             return
         }
 
+        // Never count keystrokes we posted ourselves.
+        if event.getIntegerValueField(.eventSourceUserData) == Switcher.syntheticTag { return }
+
         if isPaused { return }
 
         // Any real key press breaks a pending Shift-Shift sequence (e.g. Shift+A).

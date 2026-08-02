@@ -26,6 +26,12 @@ enum CycleEngine {
 
         guard cycle.count >= 2, !text.isEmpty else { return nil }
 
+        // Selecting the previous word can hand us surrounding whitespace
+        // (" house"). Cycle only the word itself and put the spacing back, so
+        // repeated switches don't glue words together.
+        let (leading, core, trailing) = split(text)
+        guard !core.isEmpty else { return nil }
+
         // Editing the language list invalidates any in-flight cycle, since the
         // stored index would otherwise refer to a different layout.
         let signature = cycle.map(\.id).joined(separator: ",")
@@ -34,25 +40,48 @@ enum CycleEngine {
         let sourceIndex: Int
         if let s = state, s.signature == signature, s.index < cycle.count,
            now - s.timestamp <= continuationWindow,
-           s.writtenText == text || s.writtenText.trimmedEquals(text) {
+           isContinuation(core: core, state: s, cycle: cycle) {
             // Continuation: keep cycling the same physical keystrokes.
             keystrokes = s.keystrokes
             sourceIndex = s.index
         } else {
             // Fresh start: guess which layout the text is currently in.
-            sourceIndex = detectSourceIndex(text: text, cycle: cycle)
-            keystrokes = reverse(text, layout: cycle[sourceIndex])
+            sourceIndex = detectSourceIndex(text: core, cycle: cycle)
+            keystrokes = reverse(core, layout: cycle[sourceIndex])
         }
 
+        // Always advance exactly one step, even when the next layout renders
+        // identically (Russian and Ukrainian differ in only a few keys, so
+        // "привет" looks the same in both). The visible text may not change,
+        // but the system keyboard still switches, which is the point.
         let targetIndex = (sourceIndex + 1) % cycle.count
         let target = cycle[targetIndex]
-        let newText = forward(keystrokes, layout: target)
-        guard newText != text else { return nil }
+        let newCore = forward(keystrokes, layout: target)
 
         let newState = CycleState(keystrokes: keystrokes, index: targetIndex,
-                                  writtenText: newText, timestamp: now,
+                                  writtenText: newCore, timestamp: now,
                                   signature: signature)
-        return (newText, target.langCode, newState)
+        return (leading + newCore + trailing, target.langCode, newState)
+    }
+
+    /// Whether `core` is still the text we last wrote, so the cycle continues
+    /// instead of restarting. Re-selecting a word rarely returns a byte-identical
+    /// string, so also accept text that maps back to the same keystrokes through
+    /// the layout we last wrote in — that identifies the word regardless of how
+    /// the app reported the selection.
+    private static func isContinuation(core: String, state: CycleState, cycle: [Layout]) -> Bool {
+        if state.writtenText == core { return true }
+        return reverse(core, layout: cycle[state.index]) == state.keystrokes
+    }
+
+    /// Splits text into leading whitespace, the text itself, and trailing whitespace.
+    private static func split(_ text: String) -> (String, String, String) {
+        let chars = Array(text)
+        var start = 0
+        while start < chars.count, chars[start].isWhitespace { start += 1 }
+        var end = chars.count
+        while end > start, chars[end - 1].isWhitespace { end -= 1 }
+        return (String(chars[0..<start]), String(chars[start..<end]), String(chars[end...]))
     }
 
     static func reverse(_ text: String, layout: Layout) -> String {
@@ -83,12 +112,5 @@ enum CycleEngine {
             return i
         }
         return 0
-    }
-}
-
-private extension String {
-    func trimmedEquals(_ other: String) -> Bool {
-        let set = CharacterSet.whitespacesAndNewlines
-        return trimmingCharacters(in: set) == other.trimmingCharacters(in: set)
     }
 }
