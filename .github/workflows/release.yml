@@ -12,7 +12,7 @@ jobs:
   release:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # The version lives in ./VERSION; refuse to publish a tag that disagrees
       # with it, so the DMG name can never contradict the binary inside.
