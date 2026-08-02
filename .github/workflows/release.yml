@@ -56,7 +56,6 @@ jobs:
         run: |
           version="$(tr -d '[:space:]' < VERSION)"
           dmg="build/LangSwitcher-$version.dmg"
-          sha="$(shasum -a 256 "$dmg" | awk '{print $1}')"
 
           cat > notes.md <<EOF
           Requires macOS 13 or later on Apple Silicon.
@@ -74,8 +73,6 @@ jobs:
           Type a word in the wrong layout and double-tap Shift. Press again to
           cycle to the next layout. Choose your layouts, the trigger key and
           per-app layout memory from the globe icon in the menu bar.
-
-          SHA256: \`$sha\`
           EOF
 
           # Re-runnable: create the release the first time, refresh the asset
