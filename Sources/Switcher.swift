@@ -12,6 +12,7 @@ enum Switcher {
     private static let keyV: CGKeyCode = 9
     private static let keyLeftArrow: CGKeyCode = 123
     private static let keyRightArrow: CGKeyCode = 124
+    private static let keyDelete: CGKeyCode = 51
 
     private static let source = CGEventSource(stateID: .combinedSessionState)
 
@@ -51,6 +52,17 @@ enum Switcher {
         pasteboard.clearContents()
         pasteboard.setString(result.text, forType: .string)
         usleep(30_000)
+
+        // A terminal ignores the selection when pasting, so take the characters
+        // out first. Deleting exactly what we grabbed keeps the two consistent:
+        // whatever gets replaced is what was read.
+        if TerminalApps.isFrontmost {
+            for _ in 0..<original.count {
+                postKey(keyDelete, flags: [])
+            }
+            usleep(40_000)
+        }
+
         postKey(keyV, flags: .maskCommand)
 
         // Give the app time to actually read the pasteboard before putting the
