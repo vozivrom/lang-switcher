@@ -11,8 +11,11 @@ MACOS_DIR="$APP/Contents/MacOS"
 DMG="$ROOT/build/LangSwitcher-$VERSION.dmg"
 
 rm -rf "$STAGE" "$DMG"
-mkdir -p "$MACOS_DIR"
+mkdir -p "$MACOS_DIR" "$APP/Contents/Resources"
 cp "$ROOT/Info.plist" "$APP/Contents/Info.plist"
+
+"$ROOT/make-icon.sh" >/dev/null
+cp "$ROOT/build/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 
 # arm64-only build.
 swiftc -O -target arm64-apple-macosx13.0 \

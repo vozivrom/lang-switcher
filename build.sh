@@ -7,8 +7,11 @@ MACOS_DIR="$APP/Contents/MacOS"
 VERSION="$(tr -d '[:space:]' < "$ROOT/VERSION")"
 
 rm -rf "$APP"
-mkdir -p "$MACOS_DIR"
+mkdir -p "$MACOS_DIR" "$APP/Contents/Resources"
 cp "$ROOT/Info.plist" "$APP/Contents/Info.plist"
+
+"$ROOT/make-icon.sh" >/dev/null
+cp "$ROOT/build/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$APP/Contents/Info.plist"
 
