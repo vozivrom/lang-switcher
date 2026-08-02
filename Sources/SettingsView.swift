@@ -3,6 +3,7 @@ import SwiftUI
 /// The minimalist popover shown from the menu-bar icon.
 struct SettingsView: View {
     @ObservedObject var settings: Settings
+    @ObservedObject private var appState = AppState.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -63,6 +64,27 @@ struct SettingsView: View {
             }
             .pickerStyle(.menu)
 
+            // Shown only when the hotkey isn't actually live. Checking the
+            // grants alone would cry wolf: a listen-only tap generally runs on
+            // Accessibility without Input Monitoring ever being granted.
+            if !appState.isListening {
+                Divider()
+                VStack(alignment: .leading, spacing: 6) {
+                    Label("Hotkey inactive", systemImage: "exclamationmark.triangle.fill")
+                        .font(.subheadline)
+                        .foregroundColor(.orange)
+                    Text("Grant these, then it starts working automatically.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    if !Permissions.isAccessibilityTrusted() {
+                        permissionRow("Accessibility", action: Permissions.openAccessibilitySettings)
+                    }
+                    if !Permissions.isInputMonitoringGranted {
+                        permissionRow("Input Monitoring", action: Permissions.openInputMonitoringSettings)
+                    }
+                }
+            }
+
             Divider()
 
             HStack {
@@ -77,5 +99,15 @@ struct SettingsView: View {
         }
         .padding(16)
         .frame(width: 300)
+    }
+
+    private func permissionRow(_ name: String, action: @escaping () -> Void) -> some View {
+        HStack {
+            Text(name)
+                .font(.callout)
+            Spacer()
+            Button("Open Settings", action: action)
+                .controlSize(.small)
+        }
     }
 }

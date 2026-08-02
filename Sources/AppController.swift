@@ -31,22 +31,30 @@ final class AppController {
             }
         }
 
-        if isTrusted(prompt: true) {
-            detector.enable()
-        } else {
-            // Permission not granted yet: poll until the user enables it.
-            permissionTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] timer in
-                guard let self = self else { return }
-                if self.isTrusted(prompt: false), self.detector.enable() {
-                    timer.invalidate()
-                    self.permissionTimer = nil
-                }
-            }
+        if Permissions.isAccessibilityTrusted(prompt: true), tryToListen() { return }
+
+        // Not listening yet: poll until whatever is missing gets granted.
+        permissionTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] timer in
+            guard let self = self else { return }
+            guard Permissions.isAccessibilityTrusted(), self.tryToListen() else { return }
+            timer.invalidate()
+            self.permissionTimer = nil
         }
     }
 
-    private func isTrusted(prompt: Bool) -> Bool {
-        let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
-        return AXIsProcessTrustedWithOptions([key: prompt] as CFDictionary)
+    /// Enables the event tap, asking for Input Monitoring only if it fails.
+    ///
+    /// Accessibility alone is usually enough for a listen-only keyboard tap, so
+    /// requesting Input Monitoring up front would prompt for something most
+    /// users don't need — and leave a permanent warning if they dismissed it.
+    private func tryToListen() -> Bool {
+        if detector.enable() {
+            AppState.shared.isListening = true
+            return true
+        }
+        if !Permissions.isInputMonitoringGranted {
+            Permissions.requestInputMonitoring()
+        }
+        return false
     }
 }
