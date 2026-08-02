@@ -13,6 +13,7 @@ swiftc -O \
     "$ROOT/Sources/"*.swift \
     -o "$MACOS_DIR/LangSwitcher" \
     -framework Cocoa \
+    -framework SwiftUI \
     -framework ServiceManagement \
     -framework QuartzCore \
     -framework Carbon

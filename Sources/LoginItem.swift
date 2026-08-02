@@ -1,16 +1,31 @@
 import Foundation
 import ServiceManagement
 
-/// Registers the app to launch automatically at login.
+/// Controls whether the app launches automatically at login.
 enum LoginItem {
     static func enable() {
+        setEnabled(true)
+    }
+
+    static var isEnabled: Bool {
+        if #available(macOS 13.0, *) {
+            return SMAppService.mainApp.status == .enabled
+        }
+        return false
+    }
+
+    static func setEnabled(_ on: Bool) {
         if #available(macOS 13.0, *) {
             do {
-                if SMAppService.mainApp.status != .enabled {
-                    try SMAppService.mainApp.register()
+                if on {
+                    if SMAppService.mainApp.status != .enabled {
+                        try SMAppService.mainApp.register()
+                    }
+                } else {
+                    try SMAppService.mainApp.unregister()
                 }
             } catch {
-                NSLog("LangSwitcher: failed to register login item: \(error)")
+                NSLog("LangSwitcher: login item toggle failed: \(error)")
             }
         }
     }

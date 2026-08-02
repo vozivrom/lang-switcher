@@ -1,15 +1,21 @@
 import Cocoa
 import CoreGraphics
+import QuartzCore
 
-/// Grabs the relevant text (current selection, or the previous word if nothing
-/// is selected), remaps its layout, and pastes the result back in place.
+/// Grabs the relevant text (selection, or the previous word / whole field
+/// depending on scope), advances it one step through the layout cycle, and
+/// pastes the result back in place.
 enum Switcher {
 
+    private static let keyA: CGKeyCode = 0
     private static let keyC: CGKeyCode = 8
     private static let keyV: CGKeyCode = 9
     private static let keyLeftArrow: CGKeyCode = 123
 
     private static let source = CGEventSource(stateID: .combinedSessionState)
+
+    /// Persisted across calls so consecutive double-shifts keep cycling.
+    private static var lastState: CycleState?
 
     private static func postKey(_ key: CGKeyCode, flags: CGEventFlags) {
         if let down = CGEvent(keyboardEventSource: source, virtualKey: key, keyDown: true) {
@@ -22,9 +28,11 @@ enum Switcher {
         }
     }
 
-    /// Runs the full grab → convert → paste cycle. Call off the main thread so
-    /// the short sleeps don't block the event tap's run loop.
-    static func run() {
+    /// Runs the full grab → cycle → paste cycle. Call off the main thread so the
+    /// short sleeps don't block the event tap's run loop.
+    static func run(cycle: [Layout], scope: Scope) {
+        guard cycle.count >= 2 else { return }
+
         let pasteboard = NSPasteboard.general
         let saved = snapshot(pasteboard)
 
@@ -37,13 +45,18 @@ enum Switcher {
         if pasteboard.changeCount != before {
             text = pasteboard.string(forType: .string)
         } else {
-            // 2. Nothing was selected: select the previous word, then copy.
-            postKey(keyLeftArrow, flags: [.maskShift, .maskAlternate])
+            // 2. Nothing selected: select per scope, then copy.
+            switch scope {
+            case .word:
+                postKey(keyLeftArrow, flags: [.maskShift, .maskAlternate])
+            case .text:
+                postKey(keyA, flags: .maskCommand)
+            }
             usleep(40_000)
-            let beforeWord = pasteboard.changeCount
+            let beforeSelect = pasteboard.changeCount
             postKey(keyC, flags: .maskCommand)
             usleep(90_000)
-            if pasteboard.changeCount != beforeWord {
+            if pasteboard.changeCount != beforeSelect {
                 text = pasteboard.string(forType: .string)
             }
         }
@@ -53,27 +66,28 @@ enum Switcher {
             return
         }
 
-        let converted = LayoutConverter.convert(original)
-        guard converted != original else {
+        let now = CACurrentMediaTime()
+        guard let result = CycleEngine.next(text: original, cycle: cycle,
+                                            state: lastState, now: now) else {
             restore(pasteboard, items: saved)
             return
         }
 
         // 3. Paste the converted text over the selection.
         pasteboard.clearContents()
-        pasteboard.setString(converted, forType: .string)
+        pasteboard.setString(result.text, forType: .string)
         usleep(20_000)
         postKey(keyV, flags: .maskCommand)
         usleep(120_000)
 
-        // 4. Put the user's original clipboard back.
+        // 4. Restore the user's clipboard and remember the new cycle position.
         restore(pasteboard, items: saved)
+        lastState = result.state
 
-        // 5. Switch the system keyboard to the language they meant to type in,
-        //    so continued typing comes out correctly.
-        let target = LayoutConverter.targetLanguage(for: original)
+        // 5. Switch the system keyboard to the target layout's language.
+        let langCode = result.langCode
         DispatchQueue.main.async {
-            InputSource.select(language: target)
+            InputSource.select(language: langCode)
         }
     }
 

@@ -17,7 +17,7 @@ cp "$ROOT/Info.plist" "$APP/Contents/Info.plist"
 swiftc -O -target arm64-apple-macosx13.0 \
     "$ROOT/Sources/"*.swift \
     -o "$MACOS_DIR/LangSwitcher" \
-    -framework Cocoa -framework ServiceManagement -framework QuartzCore -framework Carbon
+    -framework Cocoa -framework SwiftUI -framework ServiceManagement -framework QuartzCore -framework Carbon
 
 # Ad-hoc sign: required for the app to run at all on Apple Silicon, and needs
 # no certificate on the recipient's machine.

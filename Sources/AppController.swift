@@ -6,16 +6,22 @@ import Cocoa
 final class AppController {
 
     private let detector = DoubleShiftDetector()
+    private let statusItem = StatusItemController()
     private var permissionTimer: Timer?
 
     func start() {
         LoginItem.enable()
+        statusItem.install()
 
         detector.onDoubleShift = { [weak self] in
             guard let self = self else { return }
+            // Read settings on the main thread (this callback runs on the main
+            // run loop), then hand a snapshot to the background worker.
+            let cycle = Settings.shared.cycle
+            let scope = Settings.shared.scope
             self.detector.isPaused = true
             DispatchQueue.global(qos: .userInitiated).async {
-                Switcher.run()
+                Switcher.run(cycle: cycle, scope: scope)
                 DispatchQueue.main.async {
                     self.detector.isPaused = false
                 }
