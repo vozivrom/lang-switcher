@@ -15,6 +15,7 @@ final class Settings: ObservableObject {
         static let layouts = "cycleLayoutIDs"
         static let legacyLanguages = "cycleLanguages"   // pre-1.2 language codes
         static let scope = "scope"
+        static let rememberPerApp = "rememberLayoutPerApp"
     }
 
     /// Ordered list of layout ids the double-shift cycles through.
@@ -27,8 +28,17 @@ final class Settings: ObservableObject {
         didSet { defaults.set(scope.rawValue, forKey: Key.scope) }
     }
 
+    /// Restore each app's last layout when switching to it.
+    @Published var rememberLayoutPerApp: Bool {
+        didSet {
+            defaults.set(rememberLayoutPerApp, forKey: Key.rememberPerApp)
+            AppLayoutMemory.shared.setEnabled(rememberLayoutPerApp)
+        }
+    }
+
     private init() {
         scope = Scope(rawValue: defaults.string(forKey: Key.scope) ?? "") ?? .word
+        rememberLayoutPerApp = defaults.bool(forKey: Key.rememberPerApp)
 
         if let stored = defaults.array(forKey: Key.layouts) as? [String] {
             layoutIDs = Settings.installed(stored)

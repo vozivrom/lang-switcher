@@ -23,6 +23,14 @@ enum InputSource {
         }
     }
 
+    /// The id of the keyboard layout currently in use.
+    static func current() -> String? {
+        guard let source = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
+              let pointer = TISGetInputSourceProperty(source, kTISPropertyInputSourceID)
+        else { return nil }
+        return Unmanaged<AnyObject>.fromOpaque(pointer).takeUnretainedValue() as? String
+    }
+
     private static func isSelectable(_ source: TISInputSource) -> Bool {
         guard let pointer = TISGetInputSourceProperty(source, kTISPropertyInputSourceIsSelectCapable) else {
             return false

@@ -14,6 +14,7 @@ final class AppController {
         // Touch settings at launch so any migration of stored layout ids happens
         // now rather than the first time the user opens the panel.
         _ = Settings.shared.cycle
+        AppLayoutMemory.shared.setEnabled(Settings.shared.rememberLayoutPerApp)
         statusItem.install()
 
         detector.onDoubleShift = { [weak self] in

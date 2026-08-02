@@ -64,6 +64,10 @@ struct SettingsView: View {
             }
             .pickerStyle(.menu)
 
+            Toggle("Remember layout per app", isOn: $settings.rememberLayoutPerApp)
+                .toggleStyle(.checkbox)
+                .help("Switch back to the layout you last used in each app")
+
             // Shown only when the hotkey isn't actually live. Checking the
             // grants alone would cry wolf: a listen-only tap generally runs on
             // Accessibility without Input Monitoring ever being granted.
