@@ -100,6 +100,16 @@ final class AppController {
         let check: () -> Void = {
             UpdateChecker.check { version in
                 AppState.shared.availableUpdate = version
+                guard let version = version else { return }
+                // Installing verifies the download against our own signature and
+                // refuses anything that doesn't match, so this can't be used to
+                // push a foreign build onto the user.
+                AppState.shared.updateStatus = "Installing \(version)…"
+                Updater.install(version: version) { result in
+                    if case .failure(let error) = result {
+                        AppState.shared.updateStatus = error.localizedDescription
+                    }
+                }
             }
         }
         check()

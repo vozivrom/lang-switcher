@@ -9,5 +9,8 @@ final class AppState: ObservableObject {
 
     /// Version of a newer release, once one has been seen.
     @Published var availableUpdate: String?
+
+    /// Progress or failure text from the last update attempt.
+    @Published var updateStatus: String?
     private init() {}
 }

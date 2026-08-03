@@ -89,18 +89,12 @@ jobs:
             : > changes.txt
           fi
 
+          # Install steps live in the README; repeating them every release just
+          # buries what people came to read.
           {
             echo "**What changed**"
             echo
             if [ -s changes.txt ]; then cat changes.txt; else echo "- Maintenance release"; fi
-            echo
-            echo
-            echo "**Install** — open the DMG and drag LangSwitcher to Applications."
-            echo "macOS will say it cannot verify the developer, because the app isn't"
-            echo "notarized: click Done, then allow it under System Settings >"
-            echo "Privacy & Security. Enable it under Privacy & Security > Accessibility."
-            echo
-            echo "Requires macOS 13 or later on Apple Silicon."
           } > notes.md
           rm -f changes.txt
 

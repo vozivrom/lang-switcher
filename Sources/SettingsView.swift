@@ -118,8 +118,8 @@ struct SettingsView: View {
                 ))
                 Toggle("Remember layout per app", isOn: $settings.rememberLayoutPerApp)
                     .help("Switch back to the layout you last used in each app")
-                Toggle("Check for updates", isOn: $settings.checkForUpdates)
-                    .help("Asks GitHub once a day whether a newer version exists")
+                Toggle("Update automatically", isOn: $settings.checkForUpdates)
+                    .help("Checks GitHub once a day and installs a newer version")
             }
             .toggleStyle(.checkbox)
 
@@ -154,10 +154,23 @@ struct SettingsView: View {
                 }
             }
 
+            if let status = appState.updateStatus {
+                Text(status)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             HStack {
                 // Stays disabled until a newer release has actually been seen.
                 Button(updateButtonTitle) {
-                    NSWorkspace.shared.open(UpdateChecker.releasesPage)
+                    guard let version = appState.availableUpdate else { return }
+                    appState.updateStatus = "Installing \(version)…"
+                    Updater.install(version: version) { result in
+                        if case .failure(let error) = result {
+                            appState.updateStatus = error.localizedDescription
+                        }
+                    }
                 }
                 .disabled(appState.availableUpdate == nil)
                 Spacer()
