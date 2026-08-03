@@ -15,6 +15,8 @@ jobs:
       CERT_P12: ${{ secrets.SIGNING_CERT_P12 }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # release notes are built from the log between tags
 
       # Without the certificate the DMG is signed ad-hoc, whose identity is the
       # binary hash — so every update looks like a different app and users must
@@ -78,23 +80,29 @@ jobs:
           version="$(tr -d '[:space:]' < VERSION)"
           dmg="build/LangSwitcher-$version.dmg"
 
-          cat > notes.md <<EOF
-          Requires macOS 13 or later on Apple Silicon.
+          # What actually changed, rather than the same blurb every time.
+          previous="$(git describe --tags --abbrev=0 "v$version^" 2>/dev/null || true)"
+          if [ -n "$previous" ]; then
+            git log --no-merges --pretty=format:'- %s' "$previous..v$version" \
+              | grep -v '^- Bump version' > changes.txt || true
+          else
+            : > changes.txt
+          fi
 
-          **Install**
-
-          1. Open the DMG and drag LangSwitcher to Applications.
-          2. Launch it. macOS will say it cannot verify the developer, because
-             the app isn't notarized. Click Done, then open
-             System Settings > Privacy & Security and click **Open Anyway**.
-          3. Enable LangSwitcher under Privacy & Security > **Accessibility**.
-
-          **Usage**
-
-          Type a word in the wrong layout and double-tap Shift. Press again to
-          cycle to the next layout. Choose your layouts, the trigger key and
-          per-app layout memory from the globe icon in the menu bar.
-          EOF
+          {
+            echo "**What changed**"
+            echo
+            if [ -s changes.txt ]; then cat changes.txt; else echo "- Maintenance release"; fi
+            echo
+            echo
+            echo "**Install** — open the DMG and drag LangSwitcher to Applications."
+            echo "macOS will say it cannot verify the developer, because the app isn't"
+            echo "notarized: click Done, then allow it under System Settings >"
+            echo "Privacy & Security. Enable it under Privacy & Security > Accessibility."
+            echo
+            echo "Requires macOS 13 or later on Apple Silicon."
+          } > notes.md
+          rm -f changes.txt
 
           # Re-runnable: create the release the first time, refresh the asset
           # and notes on later runs rather than failing because it exists.
