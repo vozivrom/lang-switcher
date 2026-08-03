@@ -19,11 +19,18 @@ jobs:
       # Without the certificate the DMG is signed ad-hoc, whose identity is the
       # binary hash — so every update looks like a different app and users must
       # re-grant Accessibility. Importing it keeps that grant across updates.
+      #
+      # Runs unconditionally and reports what it did: a skipped step reads as a
+      # clean run, which hid a missing secret across two releases.
       - name: Import signing certificate
-        if: env.CERT_P12 != ''
         env:
           CERT_PASSWORD: ${{ secrets.SIGNING_CERT_PASSWORD }}
         run: |
+          if [ -z "${CERT_P12:-}" ]; then
+            echo "::warning::SIGNING_CERT_P12 is not set — the DMG will be ad-hoc signed."
+            echo "Updates will reset users' Accessibility permission."
+            exit 0
+          fi
           keychain=build.keychain
           password="$(uuidgen)"
           echo "$CERT_P12" | base64 --decode > /tmp/cert.p12
@@ -34,6 +41,7 @@ jobs:
           security import /tmp/cert.p12 -k "$keychain" -P "$CERT_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain"
           rm -f /tmp/cert.p12
+          echo "Imported signing certificate."
 
       # The version lives in ./VERSION; refuse to publish a tag that disagrees
       # with it, so the DMG name can never contradict the binary inside.
@@ -49,6 +57,19 @@ jobs:
 
       - name: Build DMG
         run: ./package.sh
+
+      # package.sh prints which identity it used; make a silent fallback fatal
+      # when the certificate was supposed to be there.
+      - name: Confirm the DMG is signed with the certificate
+        run: |
+          version="$(tr -d '[:space:]' < VERSION)"
+          app="build/dmg/LangSwitcher.app"
+          requirement="$(codesign -d -r- "$app" 2>&1 | grep designated || true)"
+          echo "$requirement"
+          if [ -n "${CERT_P12:-}" ] && echo "$requirement" | grep -q cdhash; then
+            echo "::error::Certificate was provided but the app is ad-hoc signed."
+            exit 1
+          fi
 
       - name: Publish release
         env:
