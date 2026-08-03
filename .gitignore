@@ -6,3 +6,6 @@ build/
 
 # macOS
 .DS_Store
+
+# Local notes for Claude Code
+CLAUDE.md
