@@ -54,6 +54,10 @@ Requires macOS 13 or later on Apple Silicon.
 
 Click the globe in the menu bar to set things up.
 
+<div align="center">
+  <img src="images/screenshot.jpeg" width="300" alt="The LangSwitcher menu bar panel">
+</div>
+
 **Layouts** — pick which of your installed layouts to cycle through, and in what
 order. Add one in **System Settings → Keyboard → Input Sources** and it appears
 here straight away; remove it there and it disappears. Drag to reorder.
@@ -66,10 +70,11 @@ here straight away; remove it there and it disappears. Drag to reorder.
 each app when you switch back, so a chat app can stay Russian while your editor
 stays English.
 
-**Check for updates** *(optional, off by default)* — asks GitHub once a day
-whether a newer release exists and tells you, so you can download it. It never
-installs anything by itself. This is the only feature that uses the network;
-leave it off and the app makes no connections at all.
+**Update automatically** *(optional, off by default)* — checks GitHub once a day
+and installs a newer version if there is one. A download is only installed if it
+carries the same signing certificate as the copy you're running, so nothing else
+can be substituted for it. This is the only feature that uses the network; leave
+it off and the app makes no connections at all.
 
 It runs in the background, has no Dock icon, and starts at login.
 

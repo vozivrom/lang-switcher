@@ -1,6 +1,4 @@
-**New**
+**Fixed**
 
-- The app can update itself. Tick "Update automatically" and it checks once a
-  day, then downloads and installs a newer version without you doing anything.
-  A download is only installed if it carries the same signing certificate as
-  the copy you're running, so nothing else can be substituted for it.
+- Nothing in the app itself changed in this release. It exists so that 1.3.2,
+  which introduced automatic updating, has something to update to.
