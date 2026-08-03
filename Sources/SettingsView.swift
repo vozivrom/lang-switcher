@@ -102,6 +102,21 @@ struct SettingsView: View {
                 .toggleStyle(.checkbox)
                 .help("Switch back to the layout you last used in each app")
 
+            // Running from anywhere but /Applications is how duplicate copies
+            // start competing for the same permission.
+            if !Instance.isInstalled {
+                Divider()
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Running from \(Instance.location)", systemImage: "exclamationmark.triangle.fill")
+                        .font(.subheadline)
+                        .foregroundColor(.orange)
+                    Text("Move LangSwitcher to Applications and open it from there, "
+                         + "or macOS keeps asking for permission.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+
             // Shown only when the hotkey isn't actually live.
             if !appState.isListening {
                 Divider()
