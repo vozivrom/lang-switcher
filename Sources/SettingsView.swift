@@ -17,6 +17,12 @@ struct SettingsView: View {
         return min(CGFloat(rows) * rowHeight, 300)
     }
 
+    /// Says what the button will do, or why it can't.
+    private var updateButtonTitle: String {
+        if let version = appState.availableUpdate { return "Update to \(version)" }
+        return settings.checkForUpdates ? "Up to date" : "Update"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -103,28 +109,23 @@ struct SettingsView: View {
             }
             .pickerStyle(.menu)
 
-            Toggle("Remember layout per app", isOn: $settings.rememberLayoutPerApp)
-                .toggleStyle(.checkbox)
-                .help("Switch back to the layout you last used in each app")
-
-            Toggle("Check for updates", isOn: $settings.checkForUpdates)
-                .toggleStyle(.checkbox)
-                .help("Asks GitHub once a day whether a newer version exists")
-
-            if let version = appState.availableUpdate {
-                HStack {
-                    Text("Version \(version) is available")
-                        .font(.callout)
-                    Spacer()
-                    Button("Download") { NSWorkspace.shared.open(UpdateChecker.releasesPage) }
-                        .controlSize(.small)
-                }
+            // The three toggles read as one group rather than being split
+            // across the panel.
+            VStack(alignment: .leading, spacing: 6) {
+                Toggle("Launch at login", isOn: Binding(
+                    get: { LoginItem.isEnabled },
+                    set: { LoginItem.setEnabled($0) }
+                ))
+                Toggle("Remember layout per app", isOn: $settings.rememberLayoutPerApp)
+                    .help("Switch back to the layout you last used in each app")
+                Toggle("Check for updates", isOn: $settings.checkForUpdates)
+                    .help("Asks GitHub once a day whether a newer version exists")
             }
+            .toggleStyle(.checkbox)
 
             // Running from anywhere but /Applications is how duplicate copies
             // start competing for the same permission.
             if !Instance.isInstalled {
-                Divider()
                 VStack(alignment: .leading, spacing: 4) {
                     Label("Running from \(Instance.location)", systemImage: "exclamationmark.triangle.fill")
                         .font(.subheadline)
@@ -138,7 +139,6 @@ struct SettingsView: View {
 
             // Shown only when the hotkey isn't actually live.
             if !appState.isListening {
-                Divider()
                 VStack(alignment: .leading, spacing: 6) {
                     Label("Hotkey inactive", systemImage: "exclamationmark.triangle.fill")
                         .font(.subheadline)
@@ -154,14 +154,12 @@ struct SettingsView: View {
                 }
             }
 
-            Divider()
-
             HStack {
-                Toggle("Launch at login", isOn: Binding(
-                    get: { LoginItem.isEnabled },
-                    set: { LoginItem.setEnabled($0) }
-                ))
-                .toggleStyle(.checkbox)
+                // Stays disabled until a newer release has actually been seen.
+                Button(updateButtonTitle) {
+                    NSWorkspace.shared.open(UpdateChecker.releasesPage)
+                }
+                .disabled(appState.availableUpdate == nil)
                 Spacer()
                 Button("Quit") { NSApp.terminate(nil) }
             }
