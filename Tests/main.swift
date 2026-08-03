@@ -246,11 +246,11 @@ if let us = layout("US"), let czech = layout("Czech") {
     checkEqual(converts("2", from: us, to: czech), "ě", "digit becomes a letter in Czech")
     checkEqual(converts("1234567890", from: us, to: czech), "+ěščřžýáíé",
                "the whole number row maps to Czech letters")
-    checkEqual(converts("ě", from: czech, to: us), "2", "and back again")
+    checkEqual(converts("ě", from: czech, to: us), "2", "Czech letter back to digit")
 
     // Punctuation moves too — this is the ";" that produced the "abz;2" bug.
     checkEqual(converts(";", from: us, to: czech), "ů", "semicolon becomes ů")
-    checkEqual(converts("ů", from: czech, to: us), ";", "and back again")
+    checkEqual(converts("ů", from: czech, to: us), ";", "Czech ů back to semicolon")
     checkEqual(converts("[]", from: us, to: czech), "ú)", "brackets move as well")
 
     // QWERTY vs QWERTZ.
@@ -261,10 +261,17 @@ if let us = layout("US"), let czech = layout("Czech") {
     checkEqual(converts("hello", from: us, to: czech), "hello",
                "shared letters are unchanged")
 
+    // Shifted keys travel the same route: Czech's number row gives digits with
+    // shift, which is the inverse of the unshifted case above.
+    checkEqual(converts("@", from: us, to: czech), "2", "shifted digit row in Czech")
+    checkEqual(converts("!", from: us, to: czech), "1", "shift+1 becomes a digit")
+    checkEqual(converts("ABZ", from: us, to: czech), "ABY", "capitals keep the z/y swap")
+    checkEqual(converts("Hello", from: us, to: czech), "Hello", "mixed case unchanged")
+
     // The exact string that was converting to "*2" before the selection fix.
     checkEqual(converts("abz;2", from: us, to: czech), "abyůě",
                "mixed letters, punctuation and digits")
-    checkEqual(converts("abyůě", from: czech, to: us), "abz;2", "round trips")
+    checkEqual(converts("abyůě", from: czech, to: us), "abz;2", "Czech round trips")
 }
 else {
     print("  skip  U.S. and Czech needed")
@@ -279,7 +286,12 @@ if let us = layout("US"), let russian = layout("Russian") {
     // Punctuation again: the "d;m" case.
     checkEqual(converts(";", from: us, to: russian), "ж", "semicolon becomes ж")
     checkEqual(converts("d;m", from: us, to: russian), "вжь", "punctuation inside a word")
-    checkEqual(converts("вжь", from: russian, to: us), "d;m", "round trips")
+    checkEqual(converts("вжь", from: russian, to: us), "d;m", "Russian round trips")
+
+    // Case is preserved because shift is part of the keystroke, not the layout.
+    checkEqual(converts("House", from: us, to: russian), "Рщгыу", "capitals convert")
+    checkEqual(converts("Привет", from: russian, to: us), "Ghbdtn", "and back, case intact")
+    checkEqual(converts("РЩГЫУ", from: russian, to: us), "HOUSE", "all caps")
 
     // Trailing punctuation converts as well, since it is a key like any other.
     checkEqual(converts("hello,", from: us, to: russian), "руддщб",
