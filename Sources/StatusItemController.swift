@@ -50,6 +50,10 @@ final class StatusItemController: NSObject {
     private func openPanel() {
         guard let button = statusItem?.button, let buttonWindow = button.window else { return }
 
+        // Pick up layouts added or removed in System Settings since last time.
+        KeyboardLayouts.refresh()
+        Settings.shared.pruneMissingLayouts()
+
         let hosting = NSHostingView(rootView: SettingsView(settings: Settings.shared))
         let size = hosting.fittingSize
         hostingView = hosting

@@ -48,6 +48,7 @@ enum Switcher {
             return
         }
 
+
         // Paste the converted text over the selection.
         pasteboard.clearContents()
         pasteboard.setString(result.text, forType: .string)
@@ -106,6 +107,7 @@ enum Switcher {
             // back to whitespace instead — that's the run the user typed.
             if TextAccess.selectPreviousRun() { return }
             if extendSelectionToWhitespace() { return }
+            if selectRunViaLine() { return }
             postKey(keyLeftArrow, flags: [.maskShift, .maskAlternate])
         case .text:
             postKey(keyA, flags: .maskCommand)
@@ -139,6 +141,38 @@ enum Switcher {
             selected = current
         }
         return !selected.isEmpty
+    }
+
+    /// Selects the run before the caret without using Accessibility at all.
+    ///
+    /// VS Code and other Electron apps only expose their text to Accessibility
+    /// when assistive tech is detected, so the strategies above get nothing
+    /// back. This works purely with keystrokes and the clipboard: select to the
+    /// start of the line, read it, put the caret back, then select exactly the
+    /// characters after the last whitespace.
+    private static func selectRunViaLine() -> Bool {
+        postKey(keyLeftArrow, flags: [.maskShift, .maskCommand])
+        usleep(50_000)
+
+        guard let line = copySelection(), !line.isEmpty else { return false }
+
+        // Right arrow collapses the selection to its trailing end, i.e. back to
+        // where the caret started.
+        postKey(keyRightArrow, flags: [])
+        usleep(30_000)
+
+        var length = 0
+        for character in line.reversed() {
+            if character.isWhitespace { break }
+            length += 1
+        }
+        guard length > 0 else { return false }
+
+        for _ in 0..<length {
+            postKey(keyLeftArrow, flags: .maskShift)
+        }
+        usleep(50_000)
+        return true
     }
 
     /// Presses ⌘C and waits for the pasteboard to actually change, rather than
