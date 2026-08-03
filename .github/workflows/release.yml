@@ -89,13 +89,22 @@ jobs:
             : > changes.txt
           fi
 
+          # Prefer notes written for this release: they group changes under
+          # New and Fixed, which can't be derived from commit subjects — a
+          # single commit is often both. The commit log is the fallback for
+          # when RELEASE_NOTES.md wasn't updated.
+          #
           # Install steps live in the README; repeating them every release just
           # buries what people came to read.
-          {
-            echo "**What changed**"
-            echo
-            if [ -s changes.txt ]; then cat changes.txt; else echo "- Maintenance release"; fi
-          } > notes.md
+          if [ -s RELEASE_NOTES.md ]; then
+            cp RELEASE_NOTES.md notes.md
+          else
+            {
+              echo "**What changed**"
+              echo
+              if [ -s changes.txt ]; then cat changes.txt; else echo "- Maintenance release"; fi
+            } > notes.md
+          fi
           rm -f changes.txt
 
           # Re-runnable: create the release the first time, refresh the asset
