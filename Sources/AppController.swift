@@ -60,16 +60,32 @@ final class AppController {
             }
         }
 
-        if Permissions.isAccessibilityTrusted(prompt: true), tryToListen() { return }
+        // Check quietly first. At login the permission often hasn't resolved
+        // yet, and asking straight away puts up a prompt for something the user
+        // already granted — which is worse than waiting a moment.
+        if Permissions.isAccessibilityTrusted(), tryToListen() { return }
 
-        // Not listening yet: poll until whatever is missing gets granted.
-        permissionTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] timer in
+        var promptAfter: Date? = Date().addingTimeInterval(promptGracePeriod)
+        permissionTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
             guard let self = self else { return }
-            guard Permissions.isAccessibilityTrusted(), self.tryToListen() else { return }
-            timer.invalidate()
-            self.permissionTimer = nil
+
+            if Permissions.isAccessibilityTrusted(), self.tryToListen() {
+                timer.invalidate()
+                self.permissionTimer = nil
+                return
+            }
+
+            // Still nothing after the grace period, so it really is missing:
+            // ask once, then leave the panel to explain it.
+            if let deadline = promptAfter, Date() >= deadline {
+                promptAfter = nil
+                _ = Permissions.isAccessibilityTrusted(prompt: true)
+            }
         }
     }
+
+    /// How long to wait for a granted permission to show up before prompting.
+    private let promptGracePeriod: TimeInterval = 5
 
     /// Checks on launch and daily while the setting is on.
     private func scheduleUpdateChecks() {

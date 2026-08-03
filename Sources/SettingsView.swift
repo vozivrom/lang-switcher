@@ -19,8 +19,13 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("LangSwitcher")
-                .font(.headline)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("LangSwitcher")
+                    .font(.headline)
+                Text(UpdateChecker.currentVersion)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Chosen layouts")
