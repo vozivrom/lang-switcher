@@ -1,4 +1,5 @@
 import Cocoa
+import Carbon
 
 /// Wires everything together: requests Accessibility access, starts the
 /// double-Shift detector (retrying until permission is granted), and registers
@@ -9,6 +10,7 @@ final class AppController {
     private let statusItem = StatusItemController()
     private var permissionTimer: Timer?
     private var hotkeyObserver: NSObjectProtocol?
+    private var inputSourcesObserver: NSObjectProtocol?
 
     func start() {
         LoginItem.enable()
@@ -17,6 +19,16 @@ final class AppController {
         _ = Settings.shared.cycle
         AppLayoutMemory.shared.setEnabled(Settings.shared.rememberLayoutPerApp)
         detector.modifier = Settings.shared.hotkey
+
+        // The installed layouts are cached, so notice when the user adds or
+        // removes one in System Settings and drop any that have gone.
+        inputSourcesObserver = DistributedNotificationCenter.default().addObserver(
+            forName: NSNotification.Name(kTISNotifyEnabledKeyboardInputSourcesChanged as String),
+            object: nil, queue: .main
+        ) { _ in
+            KeyboardLayouts.refresh()
+            Settings.shared.pruneMissingLayouts()
+        }
         hotkeyObserver = NotificationCenter.default.addObserver(
             forName: .hotkeyChanged, object: nil, queue: .main
         ) { [weak self] _ in
@@ -50,19 +62,16 @@ final class AppController {
         }
     }
 
-    /// Enables the event tap, asking for Input Monitoring only if it fails.
+    /// Enables the event tap.
     ///
-    /// Accessibility alone is usually enough for a listen-only keyboard tap, so
-    /// requesting Input Monitoring up front would prompt for something most
-    /// users don't need — and leave a permanent warning if they dismissed it.
+    /// Never asks for Input Monitoring: a listen-only keyboard tap runs on
+    /// Accessibility alone, and tap creation can fail transiently (right after a
+    /// relaunch, say), so treating any failure as a missing permission prompts
+    /// for something that isn't the problem. The panel offers it as a manual
+    /// remedy instead.
     private func tryToListen() -> Bool {
-        if detector.enable() {
-            AppState.shared.isListening = true
-            return true
-        }
-        if !Permissions.isInputMonitoringGranted {
-            Permissions.requestInputMonitoring()
-        }
-        return false
+        guard detector.enable() else { return false }
+        AppState.shared.isListening = true
+        return true
     }
 }

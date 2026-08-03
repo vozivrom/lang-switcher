@@ -91,6 +91,17 @@ final class Settings: ObservableObject {
     /// The cycle resolved to concrete layouts (unknown ids are dropped).
     var cycle: [Layout] { layoutIDs.compactMap { KeyboardLayouts.layout(id: $0) } }
 
+    /// Drops layouts the user has since removed in System Settings. Call after
+    /// `KeyboardLayouts.refresh()`, since it resolves against that list.
+    func pruneMissingLayouts() {
+        let surviving = Settings.installed(layoutIDs)
+        guard surviving != layoutIDs else { return }
+
+        layoutIDs = surviving.count >= Settings.minimumLayouts
+            ? surviving
+            : KeyboardLayouts.all.map(\.id)
+    }
+
     // MARK: - Editing the cycle
 
     /// Cycling is meaningless with fewer than two layouts, so removal stops here.

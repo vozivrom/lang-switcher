@@ -13,16 +13,27 @@
 
 ---
 
-You meant to type `house`, but the Russian layout was active and you got `рщгыу`.
+You meant to type `house`, but another layout was active and you got `рщгыу`.
 Double-tap Shift and it becomes `house` — and your keyboard switches with it.
 
+**Any keyboard layout installed on your Mac works.** Layouts are read from macOS
+itself rather than a built-in list, so Russian, Ukrainian, Czech, German, Greek,
+Hebrew — whatever you've added in System Settings — can be part of the cycle,
+with nothing to configure in the app.
+
 ```
-рщгыу  ──double-tap⇧──►  house  ──double-tap⇧──►  рщгыу
+рщгыу   ──double-tap⇧──►   house      Russian ⇄ English
+abyůě   ──double-tap⇧──►   abz;2      Czech   ⇄ English
 ```
+
+Pick two layouts and it toggles between them. Pick more and each press moves to
+the next, wrapping around — so with English, Russian and Czech you cycle through
+all three.
 
 It works on the last word you typed, or on whatever you've selected. Nothing is
 translated and nothing leaves your Mac: the keys you pressed are simply read
-through a different layout.
+through a different layout — which is why punctuation and digits come along too
+(`;` is `ж` on the Russian layout, and `2` is `ě` on Czech).
 
 ## Install
 
@@ -43,10 +54,9 @@ Requires macOS 13 or later on Apple Silicon.
 
 Click the globe in the menu bar to set things up.
 
-**Layouts** — every keyboard layout installed on your Mac can join the cycle,
-read from the system rather than a fixed list. Add Czech in System Settings and
-it shows up here. Each double-tap moves to the next layout in the list and wraps
-around, so with three layouts you cycle through all three; drag to reorder.
+**Layouts** — pick which of your installed layouts to cycle through, and in what
+order. Add one in **System Settings → Keyboard → Input Sources** and it appears
+here straight away; remove it there and it disappears. Drag to reorder.
 
 **Trigger** — double-tap Shift, Command, Option or Control.
 

@@ -102,23 +102,20 @@ struct SettingsView: View {
                 .toggleStyle(.checkbox)
                 .help("Switch back to the layout you last used in each app")
 
-            // Shown only when the hotkey isn't actually live. Checking the
-            // grants alone would cry wolf: a listen-only tap generally runs on
-            // Accessibility without Input Monitoring ever being granted.
+            // Shown only when the hotkey isn't actually live.
             if !appState.isListening {
                 Divider()
                 VStack(alignment: .leading, spacing: 6) {
                     Label("Hotkey inactive", systemImage: "exclamationmark.triangle.fill")
                         .font(.subheadline)
                         .foregroundColor(.orange)
-                    Text("Grant these, then it starts working automatically.")
+                    Text("Allow LangSwitcher under Accessibility and it starts working.")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    if !Permissions.isAccessibilityTrusted() {
-                        permissionRow("Accessibility", action: Permissions.openAccessibilitySettings)
-                    }
-                    if !Permissions.isInputMonitoringGranted {
-                        permissionRow("Input Monitoring", action: Permissions.openInputMonitoringSettings)
+                    HStack {
+                        Spacer()
+                        Button("Open Settings", action: Permissions.openAccessibilitySettings)
+                            .controlSize(.small)
                     }
                 }
             }
@@ -137,15 +134,5 @@ struct SettingsView: View {
         }
         .padding(16)
         .frame(width: 300)
-    }
-
-    private func permissionRow(_ name: String, action: @escaping () -> Void) -> some View {
-        HStack {
-            Text(name)
-                .font(.callout)
-            Spacer()
-            Button("Open Settings", action: action)
-                .controlSize(.small)
-        }
     }
 }

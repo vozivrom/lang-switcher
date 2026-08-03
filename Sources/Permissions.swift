@@ -1,15 +1,12 @@
 import Cocoa
 import ApplicationServices
-import IOKit.hid
 
-/// macOS requires two separate grants for what this app does, in two different
-/// panes of System Settings, and grants one without implying the other:
+/// Accessibility is the one grant this app needs: it covers reading the focused
+/// field's text, posting keystrokes, and receiving them in the event tap.
 ///
-/// - **Accessibility** — read the focused field's text and post keystrokes.
-/// - **Input Monitoring** — receive key events in the CGEventTap.
-///
-/// Missing either one makes the hotkey silently do nothing, which is the most
-/// confusing possible failure, so both are surfaced in the settings panel.
+/// macOS also has an Input Monitoring toggle, but it's the narrower permission
+/// for apps that only observe keystrokes — holding Accessibility makes it
+/// redundant, so we never ask for it.
 enum Permissions {
 
     /// - Parameter prompt: show the system's "open System Settings" alert.
@@ -18,29 +15,10 @@ enum Permissions {
         return AXIsProcessTrustedWithOptions([key: prompt] as CFDictionary)
     }
 
-    static var isInputMonitoringGranted: Bool {
-        IOHIDCheckAccess(kIOHIDRequestTypeListenEvent) == kIOHIDAccessTypeGranted
-    }
-
-    /// Shows the system prompt, once ever. Returns immediately afterwards, so
-    /// it's safe to call on every launch.
-    @discardableResult
-    static func requestInputMonitoring() -> Bool {
-        IOHIDRequestAccess(kIOHIDRequestTypeListenEvent)
-    }
-
-    static var allGranted: Bool { isAccessibilityTrusted() && isInputMonitoringGranted }
-
     static func openAccessibilitySettings() {
-        open("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
-    }
-
-    static func openInputMonitoringSettings() {
-        open("x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")
-    }
-
-    private static func open(_ string: String) {
-        guard let url = URL(string: string) else { return }
+        guard let url = URL(string:
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+        else { return }
         NSWorkspace.shared.open(url)
     }
 }
