@@ -31,7 +31,7 @@ the next, wrapping around — so with English, Russian and Czech you cycle throu
 all three.
 
 It works on the last word you typed, or on whatever you've selected. Nothing is
-translated and nothing leaves your Mac: the keys you pressed are simply read
+translated and no text ever leaves your Mac: the keys you pressed are simply read
 through a different layout — which is why punctuation and digits come along too
 (`;` is `ж` on the Russian layout, and `2` is `ě` on Czech).
 
@@ -65,6 +65,11 @@ here straight away; remove it there and it disappears. Drag to reorder.
 **Remember layout per app** *(optional)* — restores the layout you last used in
 each app when you switch back, so a chat app can stay Russian while your editor
 stays English.
+
+**Check for updates** *(optional, off by default)* — asks GitHub once a day
+whether a newer release exists and tells you, so you can download it. It never
+installs anything by itself. This is the only feature that uses the network;
+leave it off and the app makes no connections at all.
 
 It runs in the background, has no Dock icon, and starts at login.
 

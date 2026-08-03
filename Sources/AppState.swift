@@ -6,5 +6,8 @@ import Combine
 final class AppState: ObservableObject {
     static let shared = AppState()
     @Published var isListening = false
+
+    /// Version of a newer release, once one has been seen.
+    @Published var availableUpdate: String?
     private init() {}
 }

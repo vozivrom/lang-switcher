@@ -102,6 +102,20 @@ struct SettingsView: View {
                 .toggleStyle(.checkbox)
                 .help("Switch back to the layout you last used in each app")
 
+            Toggle("Check for updates", isOn: $settings.checkForUpdates)
+                .toggleStyle(.checkbox)
+                .help("Asks GitHub once a day whether a newer version exists")
+
+            if let version = appState.availableUpdate {
+                HStack {
+                    Text("Version \(version) is available")
+                        .font(.callout)
+                    Spacer()
+                    Button("Download") { NSWorkspace.shared.open(UpdateChecker.releasesPage) }
+                        .controlSize(.small)
+                }
+            }
+
             // Running from anywhere but /Applications is how duplicate copies
             // start competing for the same permission.
             if !Instance.isInstalled {

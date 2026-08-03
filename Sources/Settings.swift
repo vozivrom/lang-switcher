@@ -17,6 +17,7 @@ final class Settings: ObservableObject {
         static let scope = "scope"
         static let rememberPerApp = "rememberLayoutPerApp"
         static let hotkey = "hotkeyModifier"
+        static let checkForUpdates = "checkForUpdates"
     }
 
     /// Ordered list of layout ids the double-shift cycles through.
@@ -32,6 +33,15 @@ final class Settings: ObservableObject {
     /// Whether a double-shift (with no selection) acts on the last word or all text.
     @Published var scope: Scope {
         didSet { defaults.set(scope.rawValue, forKey: Key.scope) }
+    }
+
+    /// Ask GitHub about new releases. Off by default: it's the only thing that
+    /// contacts the network, so it stays the user's choice.
+    @Published var checkForUpdates: Bool {
+        didSet {
+            defaults.set(checkForUpdates, forKey: Key.checkForUpdates)
+            NotificationCenter.default.post(name: .updatePreferenceChanged, object: nil)
+        }
     }
 
     /// The modifier double-tapped to convert.
@@ -54,6 +64,7 @@ final class Settings: ObservableObject {
         scope = Scope(rawValue: defaults.string(forKey: Key.scope) ?? "") ?? .word
         rememberLayoutPerApp = defaults.bool(forKey: Key.rememberPerApp)
         hotkey = HotkeyModifier(rawValue: defaults.string(forKey: Key.hotkey) ?? "") ?? .shift
+        checkForUpdates = defaults.bool(forKey: Key.checkForUpdates)
 
         if let stored = defaults.array(forKey: Key.layouts) as? [String] {
             layoutIDs = Settings.installed(stored)

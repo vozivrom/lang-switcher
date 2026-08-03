@@ -11,6 +11,8 @@ final class AppController {
     private var permissionTimer: Timer?
     private var hotkeyObserver: NSObjectProtocol?
     private var inputSourcesObserver: NSObjectProtocol?
+    private var updateObserver: NSObjectProtocol?
+    private var updateTimer: Timer?
 
     func start() {
         LoginItem.enable()
@@ -34,6 +36,13 @@ final class AppController {
         ) { [weak self] _ in
             self?.detector.modifier = Settings.shared.hotkey
         }
+        updateObserver = NotificationCenter.default.addObserver(
+            forName: .updatePreferenceChanged, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.scheduleUpdateChecks()
+        }
+        scheduleUpdateChecks()
+
         statusItem.install()
 
         detector.onDoubleTap = { [weak self] in
@@ -59,6 +68,27 @@ final class AppController {
             guard Permissions.isAccessibilityTrusted(), self.tryToListen() else { return }
             timer.invalidate()
             self.permissionTimer = nil
+        }
+    }
+
+    /// Checks on launch and daily while the setting is on.
+    private func scheduleUpdateChecks() {
+        updateTimer?.invalidate()
+        updateTimer = nil
+
+        guard Settings.shared.checkForUpdates else {
+            AppState.shared.availableUpdate = nil
+            return
+        }
+
+        let check: () -> Void = {
+            UpdateChecker.check { version in
+                AppState.shared.availableUpdate = version
+            }
+        }
+        check()
+        updateTimer = Timer.scheduledTimer(withTimeInterval: 24 * 60 * 60, repeats: true) { _ in
+            check()
         }
     }
 

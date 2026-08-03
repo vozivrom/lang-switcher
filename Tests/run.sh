@@ -20,6 +20,7 @@ swiftc -O \
     "$ROOT/Sources/AppLayoutMemory.swift" \
     "$ROOT/Sources/InputSource.swift" \
     "$ROOT/Sources/Hotkey.swift" \
+    "$ROOT/Sources/UpdateChecker.swift" \
     -o "$BIN" \
     -framework Cocoa -framework Carbon
 

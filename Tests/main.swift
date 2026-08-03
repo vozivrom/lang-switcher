@@ -301,6 +301,27 @@ else {
     print("  skip  U.S. and Russian needed")
 }
 
+// MARK: - Update checks
+
+section("update version comparison")
+do {
+    check(UpdateChecker.isNewer("1.2.2", than: "1.2.1"), "patch bump is newer")
+    check(UpdateChecker.isNewer("1.3.0", than: "1.2.9"), "minor bump beats a higher patch")
+    check(UpdateChecker.isNewer("2.0.0", than: "1.9.9"), "major bump beats everything below")
+    // A plain string comparison gets this one wrong.
+    check(UpdateChecker.isNewer("1.10.0", than: "1.9.0"), "10 sorts above 9, not below")
+    check(UpdateChecker.isNewer("1.2.10", than: "1.2.9"), "same for the patch component")
+
+    check(!UpdateChecker.isNewer("1.2.1", than: "1.2.1"), "the same version is not newer")
+    check(!UpdateChecker.isNewer("1.2.0", than: "1.2.1"), "older is not newer")
+    check(!UpdateChecker.isNewer("1.0.0", than: "2.0.0"), "no downgrade prompts")
+
+    // Releases aren't always three components.
+    check(UpdateChecker.isNewer("1.3", than: "1.2.9"), "missing components count as zero")
+    check(!UpdateChecker.isNewer("1.2", than: "1.2.0"), "1.2 equals 1.2.0")
+    check(!UpdateChecker.isNewer("garbage", than: "1.2.1"), "unparsable versions never prompt")
+}
+
 print("\n\(checks - failures)/\(checks) passed")
 if failures > 0 {
     print("\(failures) FAILED")
