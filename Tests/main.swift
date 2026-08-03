@@ -223,6 +223,72 @@ do {
     }
 }
 
+// MARK: - Real layouts
+//
+// The cases above use synthetic layouts so they run anywhere. These use the
+// real ones, because the interesting failures come from how actual layouts
+// disagree: Czech puts letters where U.S. has digits, and punctuation moves
+// around. Skipped when a layout isn't installed — CI only has U.S.
+
+section("real layouts")
+
+func layout(_ name: String) -> Layout? {
+    KeyboardLayouts.layout(id: "com.apple.keylayout." + name)
+}
+
+func converts(_ text: String, from: Layout, to: Layout) -> String {
+    CycleEngine.render(CycleEngine.tokenize(text, layout: from), layout: to)
+}
+
+if let us = layout("US"), let czech = layout("Czech") {
+    // Czech's unshifted number row is letters, so digits are where the two
+    // layouts differ most.
+    checkEqual(converts("2", from: us, to: czech), "ě", "digit becomes a letter in Czech")
+    checkEqual(converts("1234567890", from: us, to: czech), "+ěščřžýáíé",
+               "the whole number row maps to Czech letters")
+    checkEqual(converts("ě", from: czech, to: us), "2", "and back again")
+
+    // Punctuation moves too — this is the ";" that produced the "abz;2" bug.
+    checkEqual(converts(";", from: us, to: czech), "ů", "semicolon becomes ů")
+    checkEqual(converts("ů", from: czech, to: us), ";", "and back again")
+    checkEqual(converts("[]", from: us, to: czech), "ú)", "brackets move as well")
+
+    // QWERTY vs QWERTZ.
+    checkEqual(converts("z", from: us, to: czech), "y", "z and y are swapped")
+    checkEqual(converts("y", from: us, to: czech), "z", "in both directions")
+
+    // Letters that sit on the same key in both layouts must survive untouched.
+    checkEqual(converts("hello", from: us, to: czech), "hello",
+               "shared letters are unchanged")
+
+    // The exact string that was converting to "*2" before the selection fix.
+    checkEqual(converts("abz;2", from: us, to: czech), "abyůě",
+               "mixed letters, punctuation and digits")
+    checkEqual(converts("abyůě", from: czech, to: us), "abz;2", "round trips")
+}
+else {
+    print("  skip  U.S. and Czech needed")
+}
+
+if let us = layout("US"), let russian = layout("Russian") {
+    checkEqual(converts("house", from: us, to: russian), "рщгыу", "latin to cyrillic")
+    checkEqual(converts("рщгыу", from: russian, to: us), "house", "cyrillic to latin")
+    checkEqual(converts("привет", from: russian, to: us), "ghbdtn",
+               "a real word converts to the keys it was typed with")
+
+    // Punctuation again: the "d;m" case.
+    checkEqual(converts(";", from: us, to: russian), "ж", "semicolon becomes ж")
+    checkEqual(converts("d;m", from: us, to: russian), "вжь", "punctuation inside a word")
+    checkEqual(converts("вжь", from: russian, to: us), "d;m", "round trips")
+
+    // Trailing punctuation converts as well, since it is a key like any other.
+    checkEqual(converts("hello,", from: us, to: russian), "руддщб",
+               "trailing punctuation converts")
+}
+else {
+    print("  skip  U.S. and Russian needed")
+}
+
 print("\n\(checks - failures)/\(checks) passed")
 if failures > 0 {
     print("\(failures) FAILED")
