@@ -23,7 +23,7 @@ with nothing to configure in the app.
 
 ```
 рщгыу   ──double-tap⇧──►   house      Russian ⇄ English
-abyůě   ──double-tap⇧──►   abz;2      Czech   ⇄ English
+d;m     ──double-tap⇧──►   dům        English ⇄ Czech
 ```
 
 Pick two layouts and it toggles between them. Pick more and each press moves to
