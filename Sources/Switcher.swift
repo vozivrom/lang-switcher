@@ -25,7 +25,10 @@ enum Switcher {
 
     /// Runs the full grab → cycle → paste cycle. Call off the main thread so the
     /// waits don't block the event tap's run loop.
-    static func run(cycle: [Layout], scope: Scope) {
+    /// - Parameter activeLayoutID: read by the caller on the main thread. The
+    ///   Text Input Source APIs assert they are called there, and this runs on a
+    ///   background queue.
+    static func run(cycle: [Layout], scope: Scope, activeLayoutID: String?) {
         guard cycle.count >= 2 else { return }
 
         // The user has just tapped Shift twice and may still be holding it.
@@ -43,7 +46,8 @@ enum Switcher {
 
         guard let result = CycleEngine.next(text: original, cycle: cycle,
                                             state: lastState,
-                                            now: CACurrentMediaTime()) else {
+                                            now: CACurrentMediaTime(),
+                                            activeLayoutID: activeLayoutID) else {
             restore(pasteboard, items: saved)
             return
         }

@@ -301,6 +301,36 @@ else {
     print("  skip  U.S. and Russian needed")
 }
 
+// MARK: - The active keyboard breaks ties
+
+section("active layout")
+if let us = layout("US"), let czech = layout("Czech"), let russian = layout("Russian") {
+    // "yvf" is equally typeable on U.S. and Czech, and only the active keyboard
+    // says which was meant. Each cycle below puts Russian after the layout
+    // being tested, so the converted text shows which one was read.
+    checkEqual(CycleEngine.next(text: "yvf", cycle: [us, czech, russian], state: nil, now: 0,
+                                activeLayoutID: czech.id)?.text,
+               "яма", "typed on Czech, so read as Czech")
+
+    checkEqual(CycleEngine.next(text: "yvf", cycle: [us, russian, czech], state: nil, now: 0,
+                                activeLayoutID: us.id)?.text,
+               "нма", "typed on U.S., so read as U.S.")
+
+    // A layout that explains more of the text must still win outright, even if
+    // an unrelated keyboard happens to be active.
+    checkEqual(CycleEngine.next(text: "привет", cycle: [us, czech, russian], state: nil, now: 0,
+                                activeLayoutID: us.id)?.layoutID,
+               us.id, "cyrillic is read as Russian whatever is active")
+
+    // An active layout outside the cycle must not break detection.
+    check(CycleEngine.next(text: "yvf", cycle: [us, czech, russian], state: nil, now: 0,
+                           activeLayoutID: "com.apple.keylayout.NotInCycle") != nil,
+          "an active layout outside the cycle is ignored")
+}
+else {
+    print("  skip  U.S., Czech and Russian needed")
+}
+
 // MARK: - Update checks
 
 section("update version comparison")

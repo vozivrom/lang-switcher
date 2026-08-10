@@ -1,4 +1,6 @@
 **Fixed**
 
-- Nothing in the app itself changed in this release. It exists so that 1.3.2,
-  which introduced automatic updating, has something to update to.
+- With two Latin layouts installed, the wrong one could be used to read what you
+  typed. Typing `yvf` on the Czech layout gave `нма` instead of `яма`, because
+  both layouts can produce those letters and the app picked between them
+  arbitrarily. It now uses the keyboard you're actually typing on.

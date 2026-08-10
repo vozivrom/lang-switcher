@@ -24,7 +24,12 @@ enum InputSource {
     }
 
     /// The id of the keyboard layout currently in use.
+    ///
+    /// - Important: main thread only. These APIs assert their queue and abort
+    ///   the process when called from anywhere else, so read the value on the
+    ///   main thread and pass it to background work.
     static func current() -> String? {
+        dispatchPrecondition(condition: .onQueue(.main))
         guard let source = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
               let pointer = TISGetInputSourceProperty(source, kTISPropertyInputSourceID)
         else { return nil }

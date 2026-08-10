@@ -51,9 +51,12 @@ final class AppController {
             // run loop), then hand a snapshot to the background worker.
             let cycle = Settings.shared.cycle
             let scope = Settings.shared.scope
+            // Must be read here: the Text Input Source APIs abort the process if
+            // called off the main thread.
+            let activeLayoutID = InputSource.current()
             self.detector.isPaused = true
             DispatchQueue.global(qos: .userInitiated).async {
-                Switcher.run(cycle: cycle, scope: scope)
+                Switcher.run(cycle: cycle, scope: scope, activeLayoutID: activeLayoutID)
                 DispatchQueue.main.async {
                     self.detector.isPaused = false
                 }

@@ -20,8 +20,11 @@ enum CycleEngine {
     static let continuationWindow: CFTimeInterval = 8.0
 
     /// Produces the next step in the cycle, or nil if there's nothing to do.
+    /// - Parameter activeLayoutID: the keyboard in use, which breaks ties when
+    ///   several layouts could have produced the text.
     static func next(text: String, cycle: [Layout],
-                     state: CycleState?, now: CFTimeInterval)
+                     state: CycleState?, now: CFTimeInterval,
+                     activeLayoutID: String? = nil)
         -> (text: String, layoutID: String, state: CycleState)? {
 
         guard cycle.count >= 2, !text.isEmpty else { return nil }
@@ -46,7 +49,7 @@ enum CycleEngine {
             sourceIndex = s.index
         } else {
             // Fresh start: guess which layout the text is currently in.
-            sourceIndex = detectSourceIndex(text: core, cycle: cycle)
+            sourceIndex = detectSourceIndex(text: core, cycle: cycle, active: activeLayoutID)
             tokens = tokenize(core, layout: cycle[sourceIndex])
         }
 
@@ -96,17 +99,24 @@ enum CycleEngine {
 
     /// Picks the layout that can produce the most of this text. Beats hardcoded
     /// alphabet checks and works for any layout the user installs.
-    private static func detectSourceIndex(text: String, cycle: [Layout]) -> Int {
-        var bestIndex = 0
-        var bestScore = -1
-        for (index, layout) in cycle.enumerated() {
-            let score = text.reduce(0) { $0 + (layout.charToStroke[$1] != nil ? 1 : 0) }
-            if score > bestScore {
-                bestScore = score
-                bestIndex = index
-            }
+    ///
+    /// Scores alone can't separate layouts that share an alphabet: "yvf" is
+    /// equally typeable on U.S. and Czech, but which one was used decides
+    /// whether it becomes "нма" or "яма". The keyboard that is active now is
+    /// the one the text was just typed on, so it wins ties — while a layout
+    /// that genuinely explains more of the text still wins outright.
+    private static func detectSourceIndex(text: String, cycle: [Layout], active: String?) -> Int {
+        let scores = cycle.map { layout in
+            text.reduce(0) { $0 + (layout.charToStroke[$1] != nil ? 1 : 0) }
         }
-        return bestIndex
+        guard let best = scores.max() else { return 0 }
+
+        if let active = active,
+           let index = cycle.firstIndex(where: { $0.id == active }),
+           scores[index] == best {
+            return index
+        }
+        return scores.firstIndex(of: best) ?? 0
     }
 
     /// Splits text into leading whitespace, the text itself, and trailing whitespace.
