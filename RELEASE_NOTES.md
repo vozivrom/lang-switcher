@@ -1,6 +1,6 @@
-**Fixed**
+**New**
 
-- With two Latin layouts installed, the wrong one could be used to read what you
-  typed. Typing `yvf` on the Czech layout gave `нма` instead of `яма`, because
-  both layouts can produce those letters and the app picked between them
-  arbitrarily. It now uses the keyboard you're actually typing on.
+- Text you select stays selected after converting, so you can press again to
+  keep cycling through your layouts without selecting it a second time. A
+  last-word fix still leaves the cursor at the end, so nothing sits highlighted
+  waiting to be typed over.

@@ -50,6 +50,23 @@ enum TextAccess {
         return setSelectedRange(of: element, CFRange(location: start, length: length))
     }
 
+    /// Selects the `length` characters immediately before the caret.
+    ///
+    /// Used to put a selection back over text we just pasted, so it can be
+    /// converted again without being selected by hand.
+    ///
+    /// - Parameter length: measured in UTF-16 units, as Accessibility ranges are.
+    /// - Returns: false if the app won't let its selection be set.
+    static func selectPreceding(_ length: Int) -> Bool {
+        guard length > 0, let element = focusedElement(),
+              let caret = selectedRange(of: element),
+              caret.location >= length
+        else { return false }
+
+        return setSelectedRange(of: element,
+                                CFRange(location: caret.location - length, length: length))
+    }
+
     // MARK: - Accessibility plumbing
 
     private static func focusedElement() -> AXUIElement? {

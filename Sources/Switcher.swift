@@ -39,10 +39,11 @@ enum Switcher {
         let pasteboard = NSPasteboard.general
         let saved = snapshot(pasteboard)
 
-        guard let original = grabText(scope: scope), !original.isEmpty else {
+        guard let grab = grabText(scope: scope), !grab.text.isEmpty else {
             restore(pasteboard, items: saved)
             return
         }
+        let original = grab.text
 
         guard let result = CycleEngine.next(text: original, cycle: cycle,
                                             state: lastState,
@@ -76,6 +77,13 @@ enum Switcher {
         restore(pasteboard, items: saved)
         lastState = result.state
 
+        // Leave text the user selected under a selection, so pressing again
+        // carries on cycling the same run instead of falling back to the last
+        // word. Terminals have no selection to restore.
+        if grab.wasUserSelection, !TerminalApps.isFrontmost {
+            reselect(result.text)
+        }
+
         // Switch the system keyboard to the target layout.
         let layoutID = result.layoutID
         DispatchQueue.main.async {
@@ -85,22 +93,35 @@ enum Switcher {
 
     // MARK: - Getting the text
 
+    /// Text to convert, and whether the user had selected it themselves.
+    ///
+    /// The distinction matters afterwards: text the user selected is put back
+    /// under a selection so it can be converted again, while a last-word fix is
+    /// left unselected so the next keystroke doesn't wipe it.
+    private struct Grab {
+        let text: String
+        let wasUserSelection: Bool
+    }
+
     /// Returns the text to convert, left selected so pasting replaces it:
     /// the current selection if there is one, otherwise the previous word or
     /// the whole field per `scope`.
-    private static func grabText(scope: Scope) -> String? {
+    private static func grabText(scope: Scope) -> Grab? {
         if let selection = TextAccess.selectedText() {
             // The app exposes its text, so we know whether something is selected.
-            if !selection.isEmpty { return selection }
+            if !selection.isEmpty { return Grab(text: selection, wasUserSelection: true) }
             selectFallbackRange(scope: scope)
-            if let widened = TextAccess.selectedText(), !widened.isEmpty { return widened }
-            return copySelection()
+            if let widened = TextAccess.selectedText(), !widened.isEmpty {
+                return Grab(text: widened, wasUserSelection: false)
+            }
+            return copySelection().map { Grab(text: $0, wasUserSelection: false) }
         }
 
         // Accessibility isn't available here: fall back to probing with ⌘C.
-        if let copied = copySelection() { return copied }
+        // Anything it returns before we widen the range was already selected.
+        if let copied = copySelection() { return Grab(text: copied, wasUserSelection: true) }
         selectFallbackRange(scope: scope)
-        return copySelection()
+        return copySelection().map { Grab(text: $0, wasUserSelection: false) }
     }
 
     /// Selects what to convert when nothing is selected.
@@ -146,6 +167,23 @@ enum Switcher {
         }
         return !selected.isEmpty
     }
+
+    /// Puts a selection back over the text just pasted.
+    ///
+    /// Accessibility does it in one step. Where that isn't available the only
+    /// option is walking back a character at a time, which is capped — past a
+    /// few hundred keystrokes the delay is worse than losing the selection.
+    private static func reselect(_ text: String) {
+        if TextAccess.selectPreceding(text.utf16.count) { return }
+
+        let steps = text.count
+        guard steps > 0, steps <= reselectKeystrokeLimit else { return }
+        for _ in 0..<steps {
+            postKey(keyLeftArrow, flags: .maskShift)
+        }
+    }
+
+    private static let reselectKeystrokeLimit = 300
 
     /// Selects the run before the caret without using Accessibility at all.
     ///
