@@ -23,6 +23,27 @@ enum InputSource {
         }
     }
 
+    /// Selects a layout and makes sure it actually stuck.
+    ///
+    /// Setting the input source doesn't always win: the focused text field can
+    /// restore its own a moment later, which leaves the keyboard on the previous
+    /// layout while the text we just wrote is in the new one — so the menu bar
+    /// disagrees with what you're looking at. Checking and repeating is the only
+    /// reliable way to end up where we asked to be.
+    static func selectPersistently(id: String, attempts: Int = 3) {
+        dispatchPrecondition(condition: .onQueue(.main))
+        select(id: id)
+
+        // Leave a generous gap before checking: a retry means the keyboard
+        // changes twice, and macOS's badge can end up showing the step in
+        // between. Rare now that the caller waits for the field to settle first.
+        guard attempts > 1 else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            guard current() != id else { return }
+            selectPersistently(id: id, attempts: attempts - 1)
+        }
+    }
+
     /// The id of the keyboard layout currently in use.
     ///
     /// - Important: main thread only. These APIs assert their queue and abort

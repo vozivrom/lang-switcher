@@ -82,12 +82,18 @@ enum Switcher {
         // word. Terminals have no selection to restore.
         if grab.wasUserSelection, !TerminalApps.isFrontmost {
             reselect(result.text)
+            // Restoring the selection prompts the field to reassert its own
+            // layout. Let that happen before setting ours, so the keyboard
+            // changes once — switching first means fighting it back afterwards,
+            // and macOS's layout badge then shows one of the intermediate steps.
+            usleep(220_000)
         }
 
-        // Switch the system keyboard to the target layout.
+        // Switch the system keyboard to the target layout, after the selection
+        // has settled — restoring it can make the field reassert its own layout.
         let layoutID = result.layoutID
         DispatchQueue.main.async {
-            InputSource.select(id: layoutID)
+            InputSource.selectPersistently(id: layoutID)
         }
     }
 
