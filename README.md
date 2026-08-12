@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="images/logo.png" width="128" alt="LangSwitcher">
+<img src="Images/logo.png" width="128" alt="LangSwitcher">
 
 # LangSwitcher
 
@@ -55,7 +55,7 @@ Requires macOS 13 or later on Apple Silicon.
 Click the globe in the menu bar to set things up.
 
 <div align="center">
-  <img src="images/screenshot.jpeg" width="300" alt="The LangSwitcher menu bar panel">
+  <img src="Images/2222.png" width="300" alt="The LangSwitcher menu bar panel">
 </div>
 
 **Layouts** — pick which of your installed layouts to cycle through, and in what

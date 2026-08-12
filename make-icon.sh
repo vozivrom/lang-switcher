@@ -1,10 +1,10 @@
 #!/bin/bash
-# Builds build/AppIcon.icns from images/logo.png.
+# Builds build/AppIcon.icns from Images/logo.png.
 # Regenerated on every build so the icon can't drift from the artwork.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-SOURCE="$ROOT/images/logo.png"
+SOURCE="$ROOT/Images/logo.png"
 WORK="$ROOT/build/AppIcon.iconset"
 ICNS="$ROOT/build/AppIcon.icns"
 
