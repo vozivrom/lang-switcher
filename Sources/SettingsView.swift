@@ -17,10 +17,12 @@ struct SettingsView: View {
         return min(CGFloat(rows) * rowHeight, 300)
     }
 
-    /// Says what the button will do, or why it can't.
+    /// Says what pressing will do, or what is happening instead.
     private var updateButtonTitle: String {
-        if let version = appState.availableUpdate { return "Update to \(version)" }
-        return settings.checkForUpdates ? "Up to date" : "Update"
+        if appState.isInstallingUpdate { return "Updating…" }
+        if appState.isCheckingUpdate { return "Checking…" }
+        if appState.availableUpdate != nil { return "Update" }
+        return "Check for updates"
     }
 
     var body: some View {
@@ -154,27 +156,29 @@ struct SettingsView: View {
                 }
             }
 
-            if let status = appState.updateStatus {
-                Text(status)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            // Kept tight to the button, since it reports what that button just
+            // did — at the outer spacing it read as unrelated.
+            VStack(alignment: .leading, spacing: 4) {
+                if let status = appState.updateStatus {
+                    Text(status)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
-            HStack {
-                // Stays disabled until a newer release has actually been seen.
-                Button(updateButtonTitle) {
-                    guard let version = appState.availableUpdate else { return }
-                    appState.updateStatus = "Installing \(version)…"
-                    Updater.install(version: version) { result in
-                        if case .failure(let error) = result {
-                            appState.updateStatus = error.localizedDescription
+                HStack {
+                    Button(updateButtonTitle) {
+                        if appState.availableUpdate != nil {
+                            UpdateController.shared.install()
+                        } else {
+                            UpdateController.shared.check(installWhenFound: false)
                         }
                     }
+                    // Only while something is already under way.
+                    .disabled(appState.isCheckingUpdate || appState.isInstallingUpdate)
+                    Spacer()
+                    Button("Quit") { NSApp.terminate(nil) }
                 }
-                .disabled(appState.availableUpdate == nil)
-                Spacer()
-                Button("Quit") { NSApp.terminate(nil) }
             }
         }
         .padding(16)

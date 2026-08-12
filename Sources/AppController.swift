@@ -96,28 +96,18 @@ final class AppController {
         updateTimer = nil
 
         guard Settings.shared.checkForUpdates else {
-            AppState.shared.availableUpdate = nil
+            // Drop what a previous check reported, or it stays on screen after
+            // the setting is turned off.
+            UpdateController.shared.reset()
             return
         }
 
-        let check: () -> Void = {
-            UpdateChecker.check { version in
-                AppState.shared.availableUpdate = version
-                guard let version = version else { return }
-                // Installing verifies the download against our own signature and
-                // refuses anything that doesn't match, so this can't be used to
-                // push a foreign build onto the user.
-                AppState.shared.updateStatus = "Installing \(version)…"
-                Updater.install(version: version) { result in
-                    if case .failure(let error) = result {
-                        AppState.shared.updateStatus = error.localizedDescription
-                    }
-                }
-            }
-        }
-        check()
+        // Installing verifies the download against our own signature and
+        // refuses anything that doesn't match, so an automatic install can't be
+        // used to push a foreign build onto the user.
+        UpdateController.shared.check(installWhenFound: true)
         updateTimer = Timer.scheduledTimer(withTimeInterval: 24 * 60 * 60, repeats: true) { _ in
-            check()
+            UpdateController.shared.check(installWhenFound: true)
         }
     }
 
