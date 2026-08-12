@@ -56,9 +56,10 @@ final class StatusItemController: NSObject {
         blur.material = .hudWindow
         blur.blendingMode = .behindWindow
         blur.state = .active
-        blur.wantsLayer = true
-        blur.layer?.cornerRadius = 12
-        blur.layer?.masksToBounds = true
+        // Rounded via maskImage rather than a layer corner radius: the window
+        // shadow follows the mask, whereas layer masking leaves the shadow
+        // square and its corners show through behind the rounded panel.
+        blur.maskImage = Self.roundedMask(radius: 12)
         hosting.frame = blur.bounds
         hosting.autoresizingMask = [.width, .height]
         hosting.wantsLayer = true
@@ -84,6 +85,9 @@ final class StatusItemController: NSObject {
 
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
+        // The shadow is cached from the frame at creation; recompute it so it
+        // traces the rounded mask rather than a square.
+        panel.invalidateShadow()
         self.panel = panel
 
         NotificationCenter.default.addObserver(self, selector: #selector(closePanel),
@@ -113,6 +117,21 @@ final class StatusItemController: NSObject {
         frame.size = size
         frame.origin.y = top - size.height
         panel.setFrame(frame, display: true, animate: false)
+        panel.invalidateShadow()
+    }
+
+    /// A resizable rounded rectangle, stretched from its centre so one image
+    /// works at any panel size.
+    private static func roundedMask(radius: CGFloat) -> NSImage {
+        let side = radius * 2 + 1
+        let image = NSImage(size: NSSize(width: side, height: side), flipped: false) { rect in
+            NSColor.black.setFill()
+            NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).fill()
+            return true
+        }
+        image.capInsets = NSEdgeInsets(top: radius, left: radius, bottom: radius, right: radius)
+        image.resizingMode = .stretch
+        return image
     }
 
     @objc private func closePanel() {
